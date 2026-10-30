@@ -80,6 +80,46 @@ export default function MissionControlDashboard() {
     setTerminalLogs((prev) => [`[${timestamp}] ${msg}`, ...prev.slice(0, 40)]);
   };
 
+  // Connect to live Server-Sent Events (SSE) telemetry stream
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    let eventSource: EventSource | null = null;
+
+    try {
+      eventSource = new EventSource(`${apiUrl}/v1/stream/telemetry`);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          setMetrics((prev) => ({
+            ...prev,
+            criticalDepth: data.queue_critical ?? prev.criticalDepth,
+            bulkDepth: data.queue_bulk ?? prev.bulkDepth,
+            dlqDepth: data.queue_dlq ?? prev.dlqDepth,
+            circuitBreakers: {
+              FCM: data.circuit_breakers?.FCM || "CLOSED",
+              WHATSAPP: data.circuit_breakers?.WHATSAPP || "CLOSED",
+              SMTP: data.circuit_breakers?.SMTP || data.circuit_breakers?.EMAIL || "CLOSED",
+              WEBHOOK: data.circuit_breakers?.WEBHOOK || "CLOSED",
+            },
+          }));
+        } catch {
+          // Ignore JSON parse errors
+        }
+      };
+
+      eventSource.onerror = () => {
+        eventSource?.close();
+      };
+    } catch {
+      // Graceful fallback if backend is offline
+    }
+
+    return () => {
+      eventSource?.close();
+    };
+  }, []);
+
   // Compile Dynamic Segment Filter
   const handleCompileSegment = async () => {
     setIsCompiling(true);
