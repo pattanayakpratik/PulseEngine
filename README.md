@@ -8,7 +8,7 @@
 [![Redis](https://img.shields.io/badge/Redis-7-DC382D.svg?logo=redis&logoColor=white)](https://redis.io/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black.svg?logo=next.js&logoColor=white)](https://nextjs.org/)
 [![Python](https://img.shields.io/badge/Python-3.12%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![Tests Passing](https://img.shields.io/badge/Tests-6%2F6%20Passing-emerald.svg)](tests/)
+[![Tests Passing](https://img.shields.io/badge/Tests-13%2F13%20Passing-emerald.svg)](tests/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
@@ -113,6 +113,7 @@ Built with **Next.js 16 (Turbopack)** and designed for seamless demonstration on
 | `POST` | `/v1/segments/preview` | Preview AST query, count matching users, and inspect compiled SQL | `X-API-Key` |
 | `POST` | `/v1/campaigns/dispatch` | Trigger a bulk notification blast to a specific `segment_id` | `X-API-Key`, `Idempotency-Key` |
 | `POST` | `/v1/dlq/{log_id}/replay` | Manually replay a dead-lettered message from the dashboard | `X-API-Key` |
+| `POST` | `/v1/chaos/circuit-breaker` | Chaos engineering hook: toggle provider circuit breaker in Redis | Public / Demo |
 | `GET` | `/v1/metrics/summary` | Real-time RPS, queue depths, circuit breaker states, and p99 latency | Public / Read-Only |
 | `GET` | `/v1/stream/telemetry` | Server-Sent Events (SSE) telemetry stream pushing live metrics | Public / Read-Only |
 
@@ -217,10 +218,14 @@ Access the control dashboard at [http://localhost:3000](http://localhost:3000).
 ```powershell
 pytest tests/ -v
 ```
-Verified Test Suite:
+Verified Test Suite (13/13 Passing):
 - `tests/test_segment_compiler.py`: Parameterized SQL AST compiler, nested `AND`/`OR` logic, JSONB `@>` GIN index containment.
 - `tests/test_idempotency.py`: Atomic 24h Redis lock, 409 Conflict rejection, and 200 OK cached replay.
-- `tests/test_circuit_breaker.py`: Rolling failure rate evaluation, state machine transitions (`CLOSED` → `OPEN` → `HALF_OPEN` → `CLOSED`).
+- `tests/test_circuit_breaker.py`: Rolling failure rate evaluation, state machine transitions (`CLOSED` → `OPEN` → `HALF_OPEN` → `CLOSED`), EMAIL/SMTP mapping.
+- `tests/test_dlq_replay.py`: Full contact restoration (`external_user_id`, `user_email`, `user_phone`, `user_fcm`) on dead-lettered message replay.
+- `tests/test_campaign_dispatch.py`: Memory-safe batch flushing with `flush()` and `expunge()` preserving PostgreSQL server-side cursors without mid-stream commit.
+- `tests/test_bulk_worker.py`: Non-blocking concurrent 50-item processing with `asyncio.gather` and zero-loss message preservation on shutdown.
+- `tests/test_critical_worker.py`: Non-blocking retry scheduling in dedicated high-priority queue protecting strict p99 < 500ms SLA.
 
 ### Run 2,000 RPS Stress Benchmark (Locust)
 ```powershell
@@ -276,7 +281,11 @@ pulse-engine/
 ├── tests/
 │   ├── test_idempotency.py         # Redis lock & replay tests
 │   ├── test_segment_compiler.py    # AST -> SQL validation tests
-│   ├── test_circuit_breaker.py     # State machine tests
+│   ├── test_circuit_breaker.py     # State machine & channel mapping tests
+│   ├── test_dlq_replay.py          # DLQ recipient detail restoration tests
+│   ├── test_campaign_dispatch.py   # Server-side cursor memory safety tests
+│   ├── test_bulk_worker.py         # Concurrent batch & zero-loss shutdown tests
+│   ├── test_critical_worker.py     # Non-blocking p99 SLA protection tests
 │   └── locustfile.py               # Stress test simulating 2,000 RPS spike
 └── dashboard/                      # Next.js 16 (Turbopack) Live Mission Control UI
 ```
