@@ -8,6 +8,7 @@ _PROVIDERS: dict[str, BaseProvider] = {
     "FCM": FCMProvider(),
     "WHATSAPP": WhatsAppProvider(),
     "EMAIL": SMTPProvider(),
+    "SMTP": SMTPProvider(),
     "WEBHOOK": ChaosSimulationProvider(failure_rate=0.0),
 }
 

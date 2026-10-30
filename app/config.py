@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     # Rate Limiting (Tokens/second)
     RATE_LIMIT_FCM_RPS: int = 500
     RATE_LIMIT_WHATSAPP_RPS: int = 80
+    RATE_LIMIT_EMAIL_RPS: int = 50
     RATE_LIMIT_SMTP_RPS: int = 50
     RATE_LIMIT_WEBHOOK_RPS: int = 200
 

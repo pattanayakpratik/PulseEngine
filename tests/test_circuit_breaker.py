@@ -80,3 +80,11 @@ async def test_circuit_breaker_transitions():
     # In HALF_OPEN, a successful probe call resets circuit to CLOSED
     await cb.record_success()
     assert await cb.get_state() == CircuitState.CLOSED
+
+
+def test_circuit_breaker_email_smtp_mapping():
+    mock_redis = MagicMock()
+    cb_email = CircuitBreaker(mock_redis, "EMAIL")
+    assert cb_email.provider == "SMTP"
+    assert cb_email._state_key == "cb:SMTP:state"
+

@@ -31,7 +31,10 @@ class CircuitBreaker:
         reset_timeout: int = settings.CIRCUIT_BREAKER_RESET_TIMEOUT_SECONDS,
     ):
         self.redis = redis
-        self.provider = provider_name.upper()
+        provider = provider_name.upper()
+        if provider == "EMAIL":
+            provider = "SMTP"
+        self.provider = provider
         self.window_seconds = window_seconds
         self.failure_threshold = failure_threshold
         self.min_requests = min_requests
