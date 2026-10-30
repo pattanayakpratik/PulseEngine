@@ -4,15 +4,15 @@ services:
     container_name: pulse-postgres
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: pulse_engine
+      POSTGRES_USER: ${POSTGRES_USER:-pulse_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-pulse_engine}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d pulse_engine"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pulse_admin} -d ${POSTGRES_DB:-pulse_engine}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -21,7 +21,7 @@ services:
     image: redis:7-alpine
     container_name: pulse-redis
     restart: always
-    command: redis-server --appendonly yes 
+    command: redis-server --appendonly yes
     ports:
       - "6379:6379"
     volumes:

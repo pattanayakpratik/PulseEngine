@@ -27,8 +27,10 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Pytest Suite
+        env:
+          PYTHONPATH: .
         run: |
-          pytest tests/ -v
+          python -m pytest tests/ -v
 
   build-dashboard:
     name: Next.js Dashboard Build

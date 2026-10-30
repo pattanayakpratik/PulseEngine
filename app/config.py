@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     IDEMPOTENCY_EXPIRE_SECONDS: int = 86400
 
     # PostgreSQL Database
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/pulse_engine"
-    DATABASE_URL_SYNC: str = "postgresql://postgres:postgres@localhost:5432/pulse_engine"
+    DATABASE_URL: str = "postgresql+asyncpg://localhost:5432/pulse_engine"
+    DATABASE_URL_SYNC: str = "postgresql://localhost:5432/pulse_engine"
 
     # Redis Broker
     REDIS_URL: str = "redis://localhost:6379/0"
