@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Activity,
   Zap,
@@ -75,6 +75,11 @@ export default function MissionControlDashboard() {
     "[CIRCUIT] All 4 provider circuits initialized in CLOSED state.",
   ]);
 
+  const simulationActiveRef = useRef(false);
+  useEffect(() => {
+    simulationActiveRef.current = isSimulatingCampaign;
+  }, [isSimulatingCampaign]);
+
   const addLog = (msg: string) => {
     const timestamp = new Date().toISOString().split("T")[1].slice(0, 8);
     setTerminalLogs((prev) => [`[${timestamp}] ${msg}`, ...prev.slice(0, 40)]);
@@ -91,18 +96,32 @@ export default function MissionControlDashboard() {
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          setMetrics((prev) => ({
-            ...prev,
-            criticalDepth: data.queue_critical ?? prev.criticalDepth,
-            bulkDepth: data.queue_bulk ?? prev.bulkDepth,
-            dlqDepth: data.queue_dlq ?? prev.dlqDepth,
-            circuitBreakers: {
-              FCM: data.circuit_breakers?.FCM || "CLOSED",
-              WHATSAPP: data.circuit_breakers?.WHATSAPP || "CLOSED",
-              SMTP: data.circuit_breakers?.SMTP || data.circuit_breakers?.EMAIL || "CLOSED",
-              WEBHOOK: data.circuit_breakers?.WEBHOOK || "CLOSED",
-            },
-          }));
+          setMetrics((prev) => {
+            if (simulationActiveRef.current) {
+              // During active chaos animation, preserve simulated queue numbers
+              return {
+                ...prev,
+                circuitBreakers: {
+                  FCM: data.circuit_breakers?.FCM || "CLOSED",
+                  WHATSAPP: data.circuit_breakers?.WHATSAPP || "CLOSED",
+                  SMTP: data.circuit_breakers?.SMTP || data.circuit_breakers?.EMAIL || "CLOSED",
+                  WEBHOOK: data.circuit_breakers?.WEBHOOK || "CLOSED",
+                },
+              };
+            }
+            return {
+              ...prev,
+              criticalDepth: data.queue_critical ?? prev.criticalDepth,
+              bulkDepth: data.queue_bulk ?? prev.bulkDepth,
+              dlqDepth: data.queue_dlq ?? prev.dlqDepth,
+              circuitBreakers: {
+                FCM: data.circuit_breakers?.FCM || "CLOSED",
+                WHATSAPP: data.circuit_breakers?.WHATSAPP || "CLOSED",
+                SMTP: data.circuit_breakers?.SMTP || data.circuit_breakers?.EMAIL || "CLOSED",
+                WEBHOOK: data.circuit_breakers?.WEBHOOK || "CLOSED",
+              },
+            };
+          });
         } catch {
           // Ignore JSON parse errors
         }
@@ -223,22 +242,31 @@ export default function MissionControlDashboard() {
   };
 
   // Chaos Test: Simulate SMTP Provider Outage
-  const toggleSmtpOutage = () => {
+  const toggleSmtpOutage = async () => {
     const isCurrentlyOpen = metrics.circuitBreakers.SMTP === "OPEN";
-    if (isCurrentlyOpen) {
-      setMetrics((prev) => ({
-        ...prev,
-        circuitBreakers: { ...prev.circuitBreakers, SMTP: "CLOSED" },
-      }));
-      addLog("🟢 [CIRCUIT BREAKER] SMTP health restored. Circuit reset to CLOSED.");
-    } else {
-      setMetrics((prev) => ({
-        ...prev,
-        circuitBreakers: { ...prev.circuitBreakers, SMTP: "OPEN" },
-        dlqDepth: prev.dlqDepth + 14,
-      }));
+    const nextState = isCurrentlyOpen ? "CLOSED" : "OPEN";
+
+    // Immediate optimistic local update
+    setMetrics((prev) => ({
+      ...prev,
+      circuitBreakers: { ...prev.circuitBreakers, SMTP: nextState },
+      dlqDepth: nextState === "OPEN" ? prev.dlqDepth + 14 : prev.dlqDepth,
+    }));
+
+    if (nextState === "OPEN") {
       addLog("🔴 [CIRCUIT BREAKER] 503 Provider Outage! Tripped SMTP circuit to OPEN.");
       addLog("☠️ [DLQ] 14 failed email tasks routed cleanly to Dead-Letter Queue (zero dropped).");
+    } else {
+      addLog("🟢 [CIRCUIT BREAKER] SMTP health restored. Circuit reset to CLOSED.");
+    }
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      await fetch(`${apiUrl}/v1/chaos/circuit-breaker?channel=SMTP`, {
+        method: "POST",
+      });
+    } catch {
+      // Backend offline: local simulation state already active
     }
   };
 

@@ -104,3 +104,19 @@ async def stream_telemetry(redis: Redis = Depends(get_redis)):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.post("/chaos/circuit-breaker")
+async def toggle_chaos_circuit(
+    channel: str = "SMTP",
+    redis: Redis = Depends(get_redis),
+):
+    """Chaos engineering hook to toggle circuit breaker state in Redis for live demonstrations."""
+    channel_key = channel.upper()
+    if channel_key == "EMAIL":
+        channel_key = "SMTP"
+    key = f"cb:{channel_key}:state"
+    current = await redis.get(key)
+    new_state = "CLOSED" if current == "OPEN" else "OPEN"
+    await redis.set(key, new_state)
+    return {"channel": channel_key, "state": new_state}
