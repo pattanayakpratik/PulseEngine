@@ -105,11 +105,15 @@ async def dispatch_campaign(
             batch_logs.append(notif_log)
             batch_outbox.append(outbox_ev)
 
-            # Flush periodically to preserve RAM
+            # Flush periodically and expunge to keep RAM flat without closing server-side cursor
             if len(batch_logs) >= 1000:
                 db.add_all(batch_logs)
                 db.add_all(batch_outbox)
-                await db.commit()
+                await db.flush()
+                for item in batch_logs:
+                    db.expunge(item)
+                for item in batch_outbox:
+                    db.expunge(item)
                 batch_logs.clear()
                 batch_outbox.clear()
 
@@ -117,10 +121,20 @@ async def dispatch_campaign(
         if batch_logs:
             db.add_all(batch_logs)
             db.add_all(batch_outbox)
-            await db.commit()
+            await db.flush()
+            for item in batch_logs:
+                db.expunge(item)
+            for item in batch_outbox:
+                db.expunge(item)
+            batch_logs.clear()
+            batch_outbox.clear()
 
-        # Update segment estimated count
-        segment.estimated_count = dispatched_count
+        # Update segment estimated count and commit transaction once cursor finishes
+        await db.execute(
+            update(Segment)
+            .where(Segment.id == payload.segment_id)
+            .values(estimated_count=dispatched_count)
+        )
         await db.commit()
 
         response_data = {
