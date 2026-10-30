@@ -44,6 +44,8 @@ htmlcov/
 coverage.xml
 *.cover
 *.log
+debug_*.py
+tests/test_dlq_replay.py
 
 # Node & Next.js Dashboard
 node_modules/

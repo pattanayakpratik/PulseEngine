@@ -165,15 +165,21 @@ async def replay_dlq_message(
     log.error_message = None
     log.updated_at = now
 
-    # Re-stage outbox event
+    user = await db.scalar(select(User).where(User.id == log.user_id)) if log.user_id else None
+
+    # Re-stage outbox event with recipient contact details
     outbox_ev = OutboxEvent(
         aggregate_id=log.id,
         priority_lane=log.priority,
         payload={
             "log_id": str(log.id),
             "idempotency_key": log.idempotency_key,
+            "external_user_id": user.external_user_id if user else "unknown",
             "channel": log.channel,
             "priority": log.priority,
+            "user_email": user.email if user else None,
+            "user_phone": user.phone_e164 if user else None,
+            "user_fcm": user.fcm_token if user else None,
             "replayed": True,
         },
         status="PENDING",
