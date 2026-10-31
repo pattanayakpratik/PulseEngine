@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,28 +10,31 @@ from app.api.v1.segments import router as segments_router
 from app.api.v1.campaigns import router as campaigns_router
 from app.api.v1.metrics import router as metrics_router
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] [PulseEngine] %(message)s")
+logger = logging.getLogger("PulseEngine")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: ensure tables exist and Redis is reachable
-    print(f"⚡ Starting PulseEngine in [{settings.ENVIRONMENT}] environment...")
+    logger.info("Starting PulseEngine in [%s] environment...", settings.ENVIRONMENT)
     try:
         await init_db()
-        print("✅ PostgreSQL database models synchronized.")
+        logger.info("PostgreSQL database models synchronized.")
     except Exception as e:
-        print(f"⚠️ Warning: DB connection during startup deferred: {e}")
+        logger.warning("DB connection during startup deferred: %s", e)
 
     try:
         redis = get_redis_client()
         await redis.ping()
-        print("✅ Redis broker connection established.")
+        logger.info("Redis broker connection established.")
     except Exception as e:
-        print(f"⚠️ Warning: Redis connection during startup deferred: {e}")
+        logger.warning("Redis connection during startup deferred: %s", e)
 
     yield
 
     # Shutdown
-    print("🛑 Shutting down PulseEngine connections...")
+    logger.info("Shutting down PulseEngine connections...")
     await close_redis_client()
 
 
