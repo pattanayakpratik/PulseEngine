@@ -139,8 +139,11 @@ async def process_single_critical_item(
 
 async def run_critical_worker():
     global _running
-    signal.signal(signal.SIGINT, handle_stop_signals)
-    signal.signal(signal.SIGTERM, handle_stop_signals)
+    try:
+        signal.signal(signal.SIGINT, handle_stop_signals)
+        signal.signal(signal.SIGTERM, handle_stop_signals)
+    except (ValueError, AttributeError):
+        pass
 
     engine = create_async_engine(
         settings.DATABASE_URL,
@@ -168,6 +171,9 @@ async def run_critical_worker():
             # Process without blocking the next OTP in queue
             await process_single_critical_item(item, redis, session_factory, rate_limiter)
 
+        except asyncio.CancelledError:
+            logger.info("Critical Worker task cancelled, shutting down...")
+            break
         except Exception as e:
             logger.error("Critical worker loop encounter error: %s", str(e), exc_info=True)
             await asyncio.sleep(0.5)

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -31,9 +32,26 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("Redis connection during startup deferred: %s", e)
 
+    worker_tasks = []
+    if settings.ENABLE_BACKGROUND_WORKERS:
+        logger.info("Starting embedded background workers (Outbox Relay, Critical Worker, Bulk Worker)...")
+        from app.workers.outbox_relay import run_outbox_relay
+        from app.workers.critical_worker import run_critical_worker
+        from app.workers.bulk_worker import run_bulk_worker
+
+        worker_tasks.append(asyncio.create_task(run_outbox_relay()))
+        worker_tasks.append(asyncio.create_task(run_critical_worker()))
+        worker_tasks.append(asyncio.create_task(run_bulk_worker()))
+
     yield
 
     # Shutdown
+    if worker_tasks:
+        logger.info("Stopping embedded background workers...")
+        for t in worker_tasks:
+            t.cancel()
+        await asyncio.gather(*worker_tasks, return_exceptions=True)
+
     logger.info("Shutting down PulseEngine connections...")
     await close_redis_client()
 

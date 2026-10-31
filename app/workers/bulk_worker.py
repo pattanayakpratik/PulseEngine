@@ -144,8 +144,11 @@ async def process_single_bulk_item(
 
 async def run_bulk_worker():
     global _running
-    signal.signal(signal.SIGINT, handle_stop_signals)
-    signal.signal(signal.SIGTERM, handle_stop_signals)
+    try:
+        signal.signal(signal.SIGINT, handle_stop_signals)
+        signal.signal(signal.SIGTERM, handle_stop_signals)
+    except (ValueError, AttributeError):
+        pass
 
     engine = create_async_engine(
         settings.DATABASE_URL,
@@ -183,6 +186,9 @@ async def run_bulk_worker():
 
             logger.info("Processed %d bulk messages batch concurrently.", len(items))
 
+        except asyncio.CancelledError:
+            logger.info("Bulk Campaign Worker task cancelled, shutting down...")
+            break
         except Exception as e:
             logger.error("Bulk worker error: %s", str(e), exc_info=True)
             await asyncio.sleep(0.5)

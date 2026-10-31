@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     CIRCUIT_BREAKER_MIN_REQUESTS: int = 20
     CIRCUIT_BREAKER_RESET_TIMEOUT_SECONDS: int = 30
 
+    # Embedded Cloud Workers
+    ENABLE_BACKGROUND_WORKERS: bool = False
+
     # Worker Tuning
     OUTBOX_BATCH_SIZE: int = 500
     OUTBOX_POLL_INTERVAL_MS: int = 100

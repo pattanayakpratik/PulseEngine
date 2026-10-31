@@ -24,8 +24,11 @@ def handle_stop_signals(signum, frame):
 
 async def run_outbox_relay():
     global _running
-    signal.signal(signal.SIGINT, handle_stop_signals)
-    signal.signal(signal.SIGTERM, handle_stop_signals)
+    try:
+        signal.signal(signal.SIGINT, handle_stop_signals)
+        signal.signal(signal.SIGTERM, handle_stop_signals)
+    except (ValueError, AttributeError):
+        pass
 
     engine = create_async_engine(settings.DATABASE_URL, echo=False)
     session_factory = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
@@ -74,6 +77,9 @@ async def run_outbox_relay():
 
             await asyncio.sleep(settings.OUTBOX_POLL_INTERVAL_MS / 1000.0)
 
+        except asyncio.CancelledError:
+            logger.info("Outbox Relay task cancelled, shutting down...")
+            break
         except Exception as e:
             logger.error("Error during outbox sweep: %s", str(e), exc_info=True)
             await asyncio.sleep(1.0)
