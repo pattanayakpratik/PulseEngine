@@ -7,6 +7,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791.svg?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7-DC382D.svg?logo=redis&logoColor=white)](https://redis.io/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black.svg?logo=next.js&logoColor=white)](https://nextjs.org/)
+[![Vercel Deployment](https://img.shields.io/badge/Vercel-Deployed-black.svg?logo=vercel&logoColor=white)](https://pulse-engine-dashboard-ten.vercel.app)
 [![Python](https://img.shields.io/badge/Python-3.12%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![Tests Passing](https://img.shields.io/badge/Tests-13%2F13%20Passing-emerald.svg)](tests/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -94,7 +95,9 @@ Modern applications—ranging from live gaming backends to fintech and SaaS plat
 
 ## 🖥️ Next.js 16 Interactive Portfolio Demo
 
-Built with **Next.js 16 (Turbopack)** and designed for seamless demonstration on [pattanayakpratik.vercel.app](https://pattanayakpratik.vercel.app):
+> 🌐 **Live Production Deployment:** [https://pulse-engine-dashboard-ten.vercel.app](https://pulse-engine-dashboard-ten.vercel.app)
+
+Built with **Next.js 16 (Turbopack)** and deployed directly on Vercel:
 
 1. **Visual Segment Builder & SQL Inspector:** Click rules in the UI to dynamically compile complex AST filters into parameterized SQL queries with PostgreSQL GIN index scan timing (e.g. *Matched 14,280 users in 11.4ms via GIN Index*).
 2. **Chaos & Priority Simulator:**
